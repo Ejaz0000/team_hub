@@ -1,15 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
 const healthRoutes = require("./routes/healthRoutes");
+const authRoutes = require("./routes/authRoutes");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
-const { PORT } = require("./utils/env");
+const { PORT, WEB_ORIGIN } = require("./utils/env");
 const logger = require("./utils/logger");
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: WEB_ORIGIN, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan("dev"));
 
 app.get("/", (req, res) => {
@@ -17,6 +20,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/health", healthRoutes);
+app.use(authRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
