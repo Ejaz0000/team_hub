@@ -24,6 +24,7 @@ function toSafeUser(user) {
     email: user.email,
     name: user.name,
     avatarUrl: user.avatarUrl,
+    activeWorkspaceId: user.activeWorkspaceId,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };

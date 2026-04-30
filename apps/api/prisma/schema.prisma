@@ -34,6 +34,8 @@ model User {
   name                 String
   avatarUrl            String?
   refreshTokenHash     String?
+  activeWorkspaceId    String?
+  activeWorkspace      Workspace?         @relation("ActiveWorkspace", fields: [activeWorkspaceId], references: [id])
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   memberships          WorkspaceMember[]
@@ -46,6 +48,8 @@ model User {
   notifications        Notification[]     @relation("NotificationRecipient")
   notificationsActor   Notification[]     @relation("NotificationActor")
   auditLogs            AuditLog[]         @relation("AuditActor")
+
+  @@index([activeWorkspaceId])
 }
 
 model Workspace {
@@ -56,6 +60,7 @@ model Workspace {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   members       WorkspaceMember[]
+  activeUsers   User[]            @relation("ActiveWorkspace")
   goals         Goal[]
   announcements Announcement[]
   actionItems   ActionItem[]

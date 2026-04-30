@@ -11,6 +11,10 @@ const JWT_ACCESS_TTL = process.env.JWT_ACCESS_TTL || "15m";
 const JWT_REFRESH_TTL = process.env.JWT_REFRESH_TTL || "7d";
 const ACCESS_TOKEN_COOKIE = process.env.ACCESS_TOKEN_COOKIE || "th_access";
 const REFRESH_TOKEN_COOKIE = process.env.REFRESH_TOKEN_COOKIE || "th_refresh";
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "";
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || "team-hub/avatars";
 
 module.exports = {
   PORT,
@@ -22,5 +26,9 @@ module.exports = {
   JWT_ACCESS_TTL,
   JWT_REFRESH_TTL,
   ACCESS_TOKEN_COOKIE,
-  REFRESH_TOKEN_COOKIE
+  REFRESH_TOKEN_COOKIE,
+  CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET,
+  CLOUDINARY_FOLDER
 };

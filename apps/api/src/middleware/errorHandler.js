@@ -6,6 +6,10 @@ function notFound(req, res, next) {
 }
 
 function errorHandler(err, req, res, next) {
+  if (err && err.name === "MulterError") {
+    return res.status(400).json({ error: err.message });
+  }
+
   const status = err instanceof HttpError ? err.status : 500;
   const message = err instanceof HttpError ? err.message : "Internal Server Error";
 
