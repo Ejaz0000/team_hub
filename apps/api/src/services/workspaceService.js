@@ -1,5 +1,7 @@
 const prisma = require("../utils/prisma");
 const { HttpError } = require("../utils/errors");
+const eventBus = require("../realtime/eventBus");
+const { logAudit } = require("./auditLogService");
 
 function slugify(value) {
   return value
@@ -58,7 +60,7 @@ async function createWorkspace({ userId, name, slug, description }) {
   return workspace;
 }
 
-async function updateWorkspace({ workspaceId, name, slug, description }) {
+async function updateWorkspace({ workspaceId, name, slug, description, actorId }) {
   const updates = {};
 
   if (name !== undefined) {
@@ -86,10 +88,23 @@ async function updateWorkspace({ workspaceId, name, slug, description }) {
     throw new HttpError(400, "No workspace updates provided");
   }
 
-  return prisma.workspace.update({
+  const workspace = await prisma.workspace.update({
     where: { id: workspaceId },
     data: updates
   });
+
+  await logAudit({
+    workspaceId,
+    actorId: actorId || null,
+    action: "workspace.updated",
+    entityType: "workspace",
+    entityId: workspaceId,
+    metadata: updates
+  });
+
+  eventBus.emit("workspace.updated", { workspaceId, workspace, updates });
+
+  return workspace;
 }
 
 async function switchWorkspace({ userId, workspaceId }) {
@@ -99,8 +114,22 @@ async function switchWorkspace({ userId, workspaceId }) {
   });
 }
 
+async function postCreateWorkspace({ workspace, actorId }) {
+  await logAudit({
+    workspaceId: workspace.id,
+    actorId,
+    action: "workspace.created",
+    entityType: "workspace",
+    entityId: workspace.id,
+    metadata: { name: workspace.name, slug: workspace.slug }
+  });
+
+  eventBus.emit("workspace.created", { workspaceId: workspace.id, workspace });
+}
+
 module.exports = {
   createWorkspace,
   updateWorkspace,
-  switchWorkspace
+  switchWorkspace,
+  postCreateWorkspace
 };

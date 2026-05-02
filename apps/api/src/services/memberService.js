@@ -1,6 +1,9 @@
 const prisma = require("../utils/prisma");
 const { HttpError } = require("../utils/errors");
 const { userPublicSelect } = require("../utils/selects");
+const eventBus = require("../realtime/eventBus");
+const { logAudit } = require("./auditLogService");
+const notificationService = require("./notificationService");
 
 function normalizeEmail(email) {
   return email.trim().toLowerCase();
@@ -29,7 +32,7 @@ async function listMembers({ workspaceId }) {
   });
 }
 
-async function inviteMember({ workspaceId, email, role }) {
+async function inviteMember({ workspaceId, email, role, actorId }) {
   if (!email) {
     throw new HttpError(400, "Email is required");
   }
@@ -44,6 +47,15 @@ async function inviteMember({ workspaceId, email, role }) {
   }
 
   const normalizedRole = normalizeRole(role);
+
+  const existing = await prisma.workspaceMember.findUnique({
+    where: {
+      userId_workspaceId: {
+        userId: user.id,
+        workspaceId
+      }
+    }
+  });
 
   const member = await prisma.workspaceMember.upsert({
     where: {
@@ -65,10 +77,38 @@ async function inviteMember({ workspaceId, email, role }) {
     }
   });
 
+  if (!existing) {
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { name: true }
+    });
+
+    await notificationService.notifyInvite({
+      workspaceId,
+      actorId,
+      userId: user.id,
+      workspaceName: workspace ? workspace.name : null
+    });
+  }
+
+  await logAudit({
+    workspaceId,
+    actorId,
+    action: existing ? "member.roleUpdated" : "member.invited",
+    entityType: "workspaceMember",
+    entityId: member.id,
+    metadata: { role: normalizedRole, userId: user.id }
+  });
+
+  eventBus.emit(existing ? "member.roleUpdated" : "member.invited", {
+    workspaceId,
+    member
+  });
+
   return member;
 }
 
-async function updateMemberRole({ workspaceId, memberId, role }) {
+async function updateMemberRole({ workspaceId, memberId, role, actorId }) {
   const normalizedRole = normalizeRole(role);
 
   const result = await prisma.workspaceMember.updateMany({
@@ -89,8 +129,22 @@ async function updateMemberRole({ workspaceId, memberId, role }) {
   });
 }
 
+async function postUpdateMemberRole({ workspaceId, member, actorId }) {
+  await logAudit({
+    workspaceId,
+    actorId,
+    action: "member.roleUpdated",
+    entityType: "workspaceMember",
+    entityId: member.id,
+    metadata: { role: member.role, userId: member.userId }
+  });
+
+  eventBus.emit("member.roleUpdated", { workspaceId, member });
+}
+
 module.exports = {
   listMembers,
   inviteMember,
-  updateMemberRole
+  updateMemberRole,
+  postUpdateMemberRole
 };

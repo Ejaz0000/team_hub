@@ -39,6 +39,7 @@ model User {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
   memberships          WorkspaceMember[]
+  goalsOwned           Goal[]             @relation("GoalOwner")
   goalsCreated         Goal[]             @relation("GoalCreator")
   announcementsCreated Announcement[]     @relation("AnnouncementCreator")
   comments             Comment[]
@@ -90,15 +91,18 @@ model Goal {
   status      Status       @default(ACTIVE)
   priority    Priority     @default(MEDIUM)
   dueDate     DateTime?
+  ownerId     String
   createdById String
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   workspace   Workspace    @relation(fields: [workspaceId], references: [id])
+  owner       User         @relation("GoalOwner", fields: [ownerId], references: [id])
   createdBy   User         @relation("GoalCreator", fields: [createdById], references: [id])
   milestones  Milestone[]
   actionItems ActionItem[]
 
   @@index([workspaceId])
+  @@index([ownerId])
   @@index([createdById])
   @@index([status])
 }
@@ -109,6 +113,7 @@ model Milestone {
   title       String
   description String?
   status      Status   @default(ACTIVE)
+  progress    Int      @default(0)
   dueDate     DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -122,8 +127,10 @@ model Announcement {
   id          String     @id @default(cuid())
   workspaceId String
   title       String
-  body        String
+  content     String
   status      Status     @default(ACTIVE)
+  isPinned    Boolean    @default(false)
+  pinnedAt    DateTime?
   createdById String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -135,6 +142,7 @@ model Announcement {
   @@index([workspaceId])
   @@index([createdById])
   @@index([status])
+  @@index([isPinned])
 }
 
 model Comment {

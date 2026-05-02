@@ -10,6 +10,11 @@ const createWorkspace = asyncHandler(async (req, res) => {
     description
   });
 
+  await workspaceService.postCreateWorkspace({
+    workspace,
+    actorId: req.user.id
+  });
+
   res.status(201).json({ workspace });
 });
 
@@ -19,7 +24,8 @@ const updateWorkspace = asyncHandler(async (req, res) => {
     workspaceId: req.params.workspaceId,
     name,
     slug,
-    description
+    description,
+    actorId: req.user.id
   });
 
   res.json({ workspace });
