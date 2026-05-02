@@ -4,9 +4,15 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import Button from "@/components/ui/Button";
 
-export default function CommentThread({ workspaceId, announcementId, onActivity }) {
+export default function CommentThread({
+  workspaceId,
+  announcementId,
+  onActivity,
+  refreshKey
+}) {
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState("");
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!workspaceId || !announcementId) {
@@ -26,25 +32,43 @@ export default function CommentThread({ workspaceId, announcementId, onActivity 
     return () => {
       mounted = false;
     };
-  }, [workspaceId, announcementId]);
+  }, [workspaceId, announcementId, refreshKey]);
 
   const handleAdd = async () => {
     if (!body.trim()) {
       return;
     }
 
-    const data = await api.post(
-      `/workspaces/${workspaceId}/announcements/${announcementId}/comments`,
-      { body }
-    );
-    setComments((prev) => [...prev, data.comment]);
+    const tempId = `temp-${Date.now()}`;
+    const optimistic = {
+      id: tempId,
+      body,
+      isPending: true,
+      author: { name: "You" }
+    };
+
+    setComments((prev) => [...prev, optimistic]);
     setBody("");
-    if (onActivity) {
-      onActivity({
-        title: "Comment added",
-        meta: "Announcements",
-        time: "just now"
-      });
+    setError(null);
+
+    try {
+      const data = await api.post(
+        `/workspaces/${workspaceId}/announcements/${announcementId}/comments`,
+        { body }
+      );
+      setComments((prev) =>
+        prev.map((comment) => (comment.id === tempId ? data.comment : comment))
+      );
+      if (onActivity) {
+        onActivity({
+          title: "Comment added",
+          meta: "Announcements",
+          time: "just now"
+        });
+      }
+    } catch (err) {
+      setComments((prev) => prev.filter((comment) => comment.id !== tempId));
+      setError(err.message || "Failed to post comment");
     }
   };
 
@@ -57,11 +81,14 @@ export default function CommentThread({ workspaceId, announcementId, onActivity 
           comments.slice(-3).map((comment) => (
             <div key={comment.id} className="rounded-2xl border border-slate-800/70 bg-slate-900/60 p-3">
               <p className="text-xs text-slate-300">{comment.author?.name || "User"}</p>
-              <p className="text-sm text-white">{comment.body}</p>
+              <p className={`text-sm text-white ${comment.isPending ? "opacity-60" : ""}`}>
+                {comment.body}
+              </p>
             </div>
           ))
         )}
       </div>
+      {error ? <p className="text-xs text-rose-300">{error}</p> : null}
       <div className="flex flex-col gap-2">
         <textarea
           className="min-h-[80px] rounded-2xl border border-slate-800 bg-slate-900/70 p-3 text-sm text-slate-100"

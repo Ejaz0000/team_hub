@@ -8,11 +8,23 @@ import Input from "@/components/ui/Input";
 import SectionHeader from "@/components/ui/SectionHeader";
 import CommentThread from "@/components/dashboard/CommentThread";
 import ReactionBar from "@/components/dashboard/ReactionBar";
+import AttachmentUploader from "@/components/dashboard/AttachmentUploader";
 
-export default function AnnouncementsPanel({ workspaceId, isAdmin, onActivity }) {
+export default function AnnouncementsPanel({
+  workspaceId,
+  isAdmin,
+  onActivity,
+  refreshKey
+}) {
   const [announcements, setAnnouncements] = useState([]);
-  const [form, setForm] = useState({ title: "", content: "", isPinned: false });
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    isPinned: false,
+    attachmentUrl: ""
+  });
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     if (!workspaceId) {
@@ -20,6 +32,7 @@ export default function AnnouncementsPanel({ workspaceId, isAdmin, onActivity })
     }
 
     let mounted = true;
+    setFetching(true);
     api
       .get(`/workspaces/${workspaceId}/announcements`)
       .then((data) => {
@@ -27,12 +40,17 @@ export default function AnnouncementsPanel({ workspaceId, isAdmin, onActivity })
           setAnnouncements(data.announcements || []);
         }
       })
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => {
+        if (mounted) {
+          setFetching(false);
+        }
+      });
 
     return () => {
       mounted = false;
     };
-  }, [workspaceId]);
+  }, [workspaceId, refreshKey]);
 
   const handleCreate = async () => {
     if (!form.title.trim() || !form.content.trim()) {
@@ -43,11 +61,13 @@ export default function AnnouncementsPanel({ workspaceId, isAdmin, onActivity })
     try {
       const data = await api.post(`/workspaces/${workspaceId}/announcements`, {
         title: form.title,
-        content: form.content,
+        content: form.attachmentUrl
+          ? `${form.content}\n\nAttachment: ${form.attachmentUrl}`
+          : form.content,
         isPinned: form.isPinned
       });
       setAnnouncements((prev) => [data.announcement, ...prev]);
-      setForm({ title: "", content: "", isPinned: false });
+      setForm({ title: "", content: "", isPinned: false, attachmentUrl: "" });
       if (onActivity) {
         onActivity({
           title: `Announcement posted: ${data.announcement.title}`,
@@ -96,6 +116,11 @@ export default function AnnouncementsPanel({ workspaceId, isAdmin, onActivity })
                 placeholder="Share rich text content, mentions, and updates."
               />
             </label>
+            <AttachmentUploader
+              onUploaded={(attachment) =>
+                setForm((prev) => ({ ...prev, attachmentUrl: attachment.url }))
+              }
+            />
             <label className="flex items-center gap-3 text-sm text-slate-300">
               <input
                 type="checkbox"
@@ -113,7 +138,9 @@ export default function AnnouncementsPanel({ workspaceId, isAdmin, onActivity })
         <p className="text-sm text-slate-400">Only admins can create announcements.</p>
       )}
       <div className="space-y-4">
-        {announcements.length === 0 ? (
+        {fetching && announcements.length === 0 ? (
+          <p className="text-sm text-slate-400">Loading announcements...</p>
+        ) : announcements.length === 0 ? (
           <p className="text-sm text-slate-400">No announcements yet.</p>
         ) : (
           announcements.map((announcement) => (
@@ -145,6 +172,7 @@ export default function AnnouncementsPanel({ workspaceId, isAdmin, onActivity })
                   workspaceId={workspaceId}
                   announcementId={announcement.id}
                   onActivity={onActivity}
+                  refreshKey={refreshKey}
                 />
               </div>
             </div>

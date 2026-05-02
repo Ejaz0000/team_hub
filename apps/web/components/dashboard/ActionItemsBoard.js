@@ -21,7 +21,12 @@ export default function ActionItemsBoard({ items, onUpdateStatus }) {
             {items
               .filter((item) => item.status === column.key)
               .map((item) => (
-                <div key={item.id} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-3">
+                <div
+                  key={item.id}
+                  className={`rounded-2xl border border-slate-800 bg-slate-950/60 p-3 ${
+                    item.isPending ? "opacity-60" : ""
+                  }`}
+                >
                   <p className="text-sm text-white">{item.title}</p>
                   <p className="text-xs text-slate-400">
                     {item.assignee?.name || "Unassigned"} | {item.priority}

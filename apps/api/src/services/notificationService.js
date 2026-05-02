@@ -165,9 +165,18 @@ async function notifyInvite({ workspaceId, actorId, userId, workspaceName }) {
   });
 }
 
+async function listNotifications({ userId }) {
+  return prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: 50
+  });
+}
+
 module.exports = {
   createNotification,
   notifyMentions,
   notifyComment,
-  notifyInvite
+  notifyInvite,
+  listNotifications
 };

@@ -64,5 +64,6 @@ export const useAuthStore = create((set, get) => ({
     }
 
     set({ user: null, status: "idle", error: null, hasHydrated: true });
-  }
+  },
+  setUser: (user) => set({ user })
 }));

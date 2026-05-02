@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/api";
+import { downloadCsv } from "@/lib/csv";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -10,11 +11,12 @@ import MilestonesPanel from "@/components/dashboard/MilestonesPanel";
 
 const statusOptions = ["ACTIVE", "BLOCKED", "COMPLETED", "ARCHIVED"];
 
-export default function GoalsPanel({ workspaceId, onActivity }) {
+export default function GoalsPanel({ workspaceId, onActivity, refreshKey }) {
   const [goals, setGoals] = useState([]);
   const [members, setMembers] = useState([]);
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [form, setForm] = useState({
     title: "",
     dueDate: "",
@@ -28,6 +30,7 @@ export default function GoalsPanel({ workspaceId, onActivity }) {
     }
 
     let mounted = true;
+    setFetching(true);
     Promise.all([
       api.get(`/workspaces/${workspaceId}/goals`),
       api.get(`/workspaces/${workspaceId}/members`)
@@ -42,11 +45,16 @@ export default function GoalsPanel({ workspaceId, onActivity }) {
         }
       })
       .catch(() => null);
+      .finally(() => {
+        if (mounted) {
+          setFetching(false);
+        }
+      });
 
     return () => {
       mounted = false;
     };
-  }, [workspaceId]);
+  }, [workspaceId, refreshKey]);
 
   const selectedGoal = useMemo(
     () => goals.find((goal) => goal.id === selectedGoalId),
@@ -93,12 +101,31 @@ export default function GoalsPanel({ workspaceId, onActivity }) {
     }
   };
 
+  const handleExport = () => {
+    const rows = goals.map((goal) => ({
+      id: goal.id,
+      title: goal.title,
+      status: goal.status,
+      owner: goal.owner?.name || goal.owner?.email || "",
+      dueDate: goal.dueDate ? goal.dueDate.slice(0, 10) : "",
+      createdAt: goal.createdAt ? goal.createdAt.slice(0, 10) : ""
+    }));
+    downloadCsv("goals.csv", rows);
+  };
+
   return (
     <Card id="goals" className="space-y-5">
       <SectionHeader
         title="Goals"
         subtitle="Create goals, assign owners, and track progress."
-        action={<span className="text-xs text-slate-400">{goals.length} total</span>}
+        action={
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400">{goals.length} total</span>
+            <Button variant="ghost" onClick={handleExport}>
+              Export CSV
+            </Button>
+          </div>
+        }
       />
       <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">New goal</p>
@@ -151,6 +178,10 @@ export default function GoalsPanel({ workspaceId, onActivity }) {
           </div>
         </div>
       </div>
+
+      {fetching && goals.length === 0 ? (
+        <p className="text-sm text-slate-400">Loading goals...</p>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
         <div className="space-y-3">
@@ -205,6 +236,7 @@ export default function GoalsPanel({ workspaceId, onActivity }) {
                 workspaceId={workspaceId}
                 goalId={selectedGoal.id}
                 onActivity={onActivity}
+                refreshKey={refreshKey}
               />
             </div>
           ) : (

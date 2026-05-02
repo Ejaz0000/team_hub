@@ -10,6 +10,8 @@ const userRoutes = require("./routes/userRoutes");
 const goalRoutes = require("./routes/goalRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
 const actionItemRoutes = require("./routes/actionItemRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 const { createSocketServer } = require("./realtime/socketServer");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { PORT, WEB_ORIGIN } = require("./utils/env");
@@ -33,6 +35,8 @@ app.use("/users", userRoutes);
 app.use("/workspaces/:workspaceId/goals", goalRoutes);
 app.use("/workspaces/:workspaceId/announcements", announcementRoutes);
 app.use("/workspaces/:workspaceId/action-items", actionItemRoutes);
+app.use("/notifications", notificationRoutes);
+app.use("/uploads", uploadRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

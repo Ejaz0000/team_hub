@@ -11,7 +11,9 @@ export default function ActionItemsList({ items }) {
         {items.map((item) => (
           <div
             key={item.id}
-            className="grid gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200 md:grid-cols-[1.5fr_1fr_1fr_1fr]"
+            className={`grid gap-2 rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200 md:grid-cols-[1.5fr_1fr_1fr_1fr] ${
+              item.isPending ? "opacity-60" : ""
+            }`}
           >
             <span>{item.title}</span>
             <span>{item.assignee?.name || "Unassigned"}</span>

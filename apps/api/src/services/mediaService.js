@@ -4,7 +4,8 @@ const {
   CLOUDINARY_CLOUD_NAME,
   CLOUDINARY_API_KEY,
   CLOUDINARY_API_SECRET,
-  CLOUDINARY_FOLDER
+  CLOUDINARY_FOLDER,
+  CLOUDINARY_ATTACHMENTS_FOLDER
 } = require("../utils/env");
 
 function ensureCloudinaryConfigured() {
@@ -41,4 +42,26 @@ async function uploadAvatar(file, userId) {
   return result.secure_url;
 }
 
-module.exports = { uploadAvatar };
+async function uploadAttachment(file, userId) {
+  if (!file) {
+    throw new HttpError(400, "Attachment file is required");
+  }
+
+  ensureCloudinaryConfigured();
+
+  const result = await cloudinary.uploader.upload(buildDataUri(file), {
+    folder: CLOUDINARY_ATTACHMENTS_FOLDER,
+    public_id: `${userId}-${Date.now()}`,
+    overwrite: false,
+    resource_type: "auto"
+  });
+
+  return {
+    url: result.secure_url,
+    mimeType: file.mimetype,
+    size: file.size,
+    name: file.originalname
+  };
+}
+
+module.exports = { uploadAvatar, uploadAttachment };

@@ -5,10 +5,16 @@ import api from "@/lib/api";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
-export default function MilestonesPanel({ workspaceId, goalId, onActivity }) {
+export default function MilestonesPanel({
+  workspaceId,
+  goalId,
+  onActivity,
+  refreshKey
+}) {
   const [milestones, setMilestones] = useState([]);
   const [form, setForm] = useState({ title: "", progress: 0, dueDate: "" });
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
     if (!workspaceId || !goalId) {
@@ -16,6 +22,7 @@ export default function MilestonesPanel({ workspaceId, goalId, onActivity }) {
     }
 
     let mounted = true;
+    setFetching(true);
     api
       .get(`/workspaces/${workspaceId}/goals/${goalId}/milestones`)
       .then((data) => {
@@ -23,12 +30,17 @@ export default function MilestonesPanel({ workspaceId, goalId, onActivity }) {
           setMilestones(data.milestones || []);
         }
       })
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => {
+        if (mounted) {
+          setFetching(false);
+        }
+      });
 
     return () => {
       mounted = false;
     };
-  }, [workspaceId, goalId]);
+  }, [workspaceId, goalId, refreshKey]);
 
   const handleCreate = async () => {
     if (!form.title.trim()) {
@@ -89,7 +101,9 @@ export default function MilestonesPanel({ workspaceId, goalId, onActivity }) {
         </div>
       </div>
       <div className="space-y-3">
-        {milestones.length === 0 ? (
+        {fetching && milestones.length === 0 ? (
+          <p className="text-sm text-slate-400">Loading milestones...</p>
+        ) : milestones.length === 0 ? (
           <p className="text-sm text-slate-400">No milestones yet.</p>
         ) : (
           milestones.map((milestone) => (

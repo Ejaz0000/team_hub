@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { downloadCsv } from "@/lib/csv";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -11,12 +12,14 @@ import ActionItemsList from "@/components/dashboard/ActionItemsList";
 
 const priorities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
-export default function ActionItemsPanel({ workspaceId, onActivity }) {
+export default function ActionItemsPanel({ workspaceId, onActivity, refreshKey }) {
   const [items, setItems] = useState([]);
   const [members, setMembers] = useState([]);
   const [goals, setGoals] = useState([]);
   const [view, setView] = useState("board");
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [error, setError] = useState(null);
   const [form, setForm] = useState({
     title: "",
     priority: "MEDIUM",
@@ -32,6 +35,7 @@ export default function ActionItemsPanel({ workspaceId, onActivity }) {
     }
 
     let mounted = true;
+    setFetching(true);
     Promise.all([
       api.get(`/workspaces/${workspaceId}/action-items`),
       api.get(`/workspaces/${workspaceId}/members`),
@@ -45,36 +49,60 @@ export default function ActionItemsPanel({ workspaceId, onActivity }) {
         }
       })
       .catch(() => null);
+      .finally(() => {
+        if (mounted) {
+          setFetching(false);
+        }
+      });
 
     return () => {
       mounted = false;
     };
-  }, [workspaceId]);
+  }, [workspaceId, refreshKey]);
 
   const handleCreate = async () => {
     if (!form.title.trim()) {
       return;
     }
-
     setLoading(true);
+    setError(null);
+
+    const tempId = `temp-${Date.now()}`;
+    const assignee = members.find((member) => member.userId === form.assigneeId)?.user || null;
+    const goal = goals.find((item) => item.id === form.goalId) || null;
+    const optimistic = {
+      id: tempId,
+      title: form.title,
+      priority: form.priority,
+      status: form.status,
+      dueDate: form.dueDate || null,
+      assignee,
+      goal,
+      isPending: true
+    };
+
+    setItems((prev) => [optimistic, ...prev]);
+    setForm({
+      title: "",
+      priority: "MEDIUM",
+      dueDate: "",
+      status: "ACTIVE",
+      assigneeId: "",
+      goalId: ""
+    });
+
     try {
       const data = await api.post(`/workspaces/${workspaceId}/action-items`, {
-        title: form.title,
-        priority: form.priority,
-        status: form.status,
-        dueDate: form.dueDate || undefined,
+        title: optimistic.title,
+        priority: optimistic.priority,
+        status: optimistic.status,
+        dueDate: optimistic.dueDate || undefined,
         assigneeId: form.assigneeId || undefined,
         goalId: form.goalId || undefined
       });
-      setItems((prev) => [data.actionItem, ...prev]);
-      setForm({
-        title: "",
-        priority: "MEDIUM",
-        dueDate: "",
-        status: "ACTIVE",
-        assigneeId: "",
-        goalId: ""
-      });
+      setItems((prev) =>
+        prev.map((item) => (item.id === tempId ? data.actionItem : item))
+      );
       if (onActivity) {
         onActivity({
           title: `Action item added: ${data.actionItem.title}`,
@@ -82,6 +110,9 @@ export default function ActionItemsPanel({ workspaceId, onActivity }) {
           time: "just now"
         });
       }
+    } catch (err) {
+      setItems((prev) => prev.filter((item) => item.id !== tempId));
+      setError(err.message || "Action item creation failed");
     } finally {
       setLoading(false);
     }
@@ -101,6 +132,19 @@ export default function ActionItemsPanel({ workspaceId, onActivity }) {
     }
   };
 
+  const handleExport = () => {
+    const rows = items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      priority: item.priority,
+      assignee: item.assignee?.name || item.assignee?.email || "",
+      dueDate: item.dueDate ? item.dueDate.slice(0, 10) : "",
+      goal: item.goal?.title || ""
+    }));
+    downloadCsv("action-items.csv", rows);
+  };
+
   return (
     <Card id="action-items" className="space-y-5">
       <SectionHeader
@@ -113,6 +157,9 @@ export default function ActionItemsPanel({ workspaceId, onActivity }) {
             </Button>
             <Button variant={view === "list" ? "primary" : "ghost"} onClick={() => setView("list")}>
               List
+            </Button>
+            <Button variant="ghost" onClick={handleExport}>
+              Export CSV
             </Button>
           </div>
         }
@@ -195,6 +242,11 @@ export default function ActionItemsPanel({ workspaceId, onActivity }) {
           </div>
         </div>
       </div>
+
+      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {fetching && items.length === 0 ? (
+        <p className="text-sm text-slate-400">Loading action items...</p>
+      ) : null}
 
       {view === "board" ? (
         <ActionItemsBoard items={items} onUpdateStatus={updateStatus} />
