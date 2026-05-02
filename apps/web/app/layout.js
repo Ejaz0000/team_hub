@@ -1,4 +1,5 @@
 import "./globals.css";
+import SessionBootstrap from "@/components/auth/SessionBootstrap";
 
 export const metadata = {
   title: "Collaborative Team Hub",
@@ -8,23 +9,13 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-slate-950 text-slate-100">
-        <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
-          <header className="mb-10 flex items-center justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.25em] text-slate-400">
-                Collaborative Team Hub
-              </p>
-              <h1 className="text-3xl font-semibold text-white">Team Home</h1>
-            </div>
-            <div className="rounded-full border border-slate-700 px-4 py-2 text-xs text-slate-300">
-              Next.js 14 + Tailwind + Zustand
-            </div>
-          </header>
-          <main className="flex-1">{children}</main>
-          <footer className="mt-12 text-xs text-slate-500">
-            Build, ship, and collaborate.
-          </footer>
+      <body className="min-h-screen text-slate-100 antialiased">
+        <SessionBootstrap />
+        <div className="relative min-h-screen">
+          <div className="pointer-events-none fixed inset-0 -z-10 opacity-30">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(14,116,144,0.35),_transparent_45%)]" />
+          </div>
+          {children}
         </div>
       </body>
     </html>

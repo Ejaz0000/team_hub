@@ -1,9 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spline+Sans:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   color-scheme: dark;
+  --bg-deep: #0b0f14;
+  --bg-card: rgba(15, 20, 28, 0.85);
+  --bg-soft: rgba(15, 20, 28, 0.6);
+  --line: rgba(148, 163, 184, 0.15);
+  --text-strong: #f8fafc;
+  --text-muted: #cbd5f5;
+  --accent: #ffb454;
+  --accent-soft: rgba(255, 180, 84, 0.18);
+  --font-body: "Spline Sans", "Space Grotesk", sans-serif;
+  --font-heading: "Space Grotesk", "Spline Sans", sans-serif;
 }
 
 * {
@@ -11,5 +23,53 @@
 }
 
 body {
-  background-color: #0b1220;
+  font-family: var(--font-body);
+  background:
+    radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.18), transparent 45%),
+    radial-gradient(circle at 80% 15%, rgba(244, 114, 182, 0.12), transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(250, 204, 21, 0.08), transparent 45%),
+    var(--bg-deep);
+  color: var(--text-strong);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: var(--font-heading);
+}
+
+@layer components {
+  .surface-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.45);
+  }
+
+  .surface-soft {
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .animate-fade-up-delay {
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
 }
